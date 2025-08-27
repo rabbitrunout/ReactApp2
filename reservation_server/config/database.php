@@ -1,15 +1,12 @@
-<?php 
+<?php
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "reservation_db";
 
-    $dbHost = "localhost";
-    $dbUsername = "root";
-    $dbPassword = "";
-    $dbName = "reservation_db";
+$conn = new mysqli($servername, $username, $password, $dbname);
 
-    $conn = new mysqli ($dbHost, $dbUsername, $dbPassword, $dbName);
-
-    if ($conn->connect_error)
-    {
-        die("Connection failed: " . $conn->connect_error);
-    }
-
+if ($conn->connect_error) {
+    die(json_encode(['message' => 'Connection failed: ' . $conn->connect_error]));
+}
 ?>

@@ -3,8 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'; // npm install 
 import './App.css';
 import Navbar from './components/Navbar';
 import CreateReservation from './components/CreateReservation';
-// import Post from './components/Post';
-// import PostList from './components/PostList';
+import ReservationsList from './components/ReservationsList';
 
 function App() {
   return (
@@ -12,9 +11,9 @@ function App() {
       <BrowserRouter>
         <Navbar />
         <Routes>
-          {/* <Route path={"/"} element={<PostList />} /> */}
-          <Route path={"/create-reservation"} element={<CreateReservation />} />
-          {/* <Route path={"/post/:id"} element={<Post />} /> */}
+          <Route path="/" element={<ReservationsList />} />
+          <Route path="/create-reservation" element={<CreateReservation />} />
+          {/* <Route path="/post/:id" element={<Post />} /> */}
         </Routes>
       </BrowserRouter>
     </div>
