@@ -1,33 +1,41 @@
 <?php
 header("Content-Type: application/json");
+
+// Разрешаем запросы с фронтенда React
 header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 
+// Подключаем конфиги
 require_once('../config/config.php');
 require_once('../config/database.php');
 
 // Настройки
-$maxReservationsPerPage = 20;
+$maxReservationsPerPage = 4;
+
+// Реализуем пагинацию
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $maxReservationsPerPage;
 
 // Считаем общее количество бронирований
 $countQuery = "SELECT COUNT(*) AS totalReservations FROM reservations";
 $countResult = mysqli_query($conn, $countQuery);
+$countRow = mysqli_fetch_assoc($countResult);
+$totalReservations = $countRow['totalReservations'] ?? 0;
+
+// Проверяем успешность запроса
 if (!$countResult) {
     http_response_code(500);
     echo json_encode(['message' => 'Error querying database for total reservations: ' . mysqli_error($conn)]);
     mysqli_close($conn);
     exit();
 }
-$countRow = mysqli_fetch_assoc($countResult);
-$totalReservations = $countRow['totalReservations'] ?? 0;
 
 // Получаем бронирования с пагинацией и сортировкой
 $query = "SELECT * FROM reservations ORDER BY booking_date DESC, start_time ASC LIMIT $offset, $maxReservationsPerPage";
 $result = mysqli_query($conn, $query);
 
+// Проверяем успешность запроса
 if (!$result) {
     http_response_code(500);
     echo json_encode(['message' => 'Error querying database for reservations: ' . mysqli_error($conn)]);
@@ -35,9 +43,10 @@ if (!$result) {
     exit();
 }
 
+// Преобразуем результат в массив
 $reservations = mysqli_fetch_all($result, MYSQLI_ASSOC);
 
-// Проверяем наличие данных
+// Проверяем наличие данных и возвращаем JSON
 if (empty($reservations)) {
     http_response_code(404);
     echo json_encode(['message' => 'No reservations found', 'totalReservations' => $totalReservations]);
