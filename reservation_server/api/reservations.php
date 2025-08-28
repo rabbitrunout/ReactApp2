@@ -1,59 +1,51 @@
 <?php
 header("Content-Type: application/json");
-
-// Разрешаем запросы с фронтенда React
 header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Methods: GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 
-// Подключаем конфиги
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit(); }
+
 require_once('../config/config.php');
 require_once('../config/database.php');
 
-// Настройки
-$maxReservationsPerPage = 4;
-
-// Реализуем пагинацию
+$reservationsPerPage = 4;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$offset = ($page - 1) * $maxReservationsPerPage;
+if ($page < 1) $page = 1;
+$offset = ($page - 1) * $reservationsPerPage;
 
-// Считаем общее количество бронирований
-$countQuery = "SELECT COUNT(*) AS totalReservations FROM reservations";
-$countResult = mysqli_query($conn, $countQuery);
-$countRow = mysqli_fetch_assoc($countResult);
-$totalReservations = $countRow['totalReservations'] ?? 0;
-
-// Проверяем успешность запроса
-if (!$countResult) {
-    http_response_code(500);
-    echo json_encode(['message' => 'Error querying database for total reservations: ' . mysqli_error($conn)]);
-    mysqli_close($conn);
-    exit();
+$countQuery = "SELECT COUNT(*) as total FROM reservations";
+$countResult = $conn->query($countQuery);
+$totalReservations = 0;
+if ($countResult) {
+    $row = $countResult->fetch_assoc();
+    $totalReservations = (int)$row['total'];
 }
 
-// Получаем бронирования с пагинацией и сортировкой
-$query = "SELECT * FROM reservations ORDER BY booking_date DESC, start_time ASC LIMIT $offset, $maxReservationsPerPage";
-$result = mysqli_query($conn, $query);
+$query = "
+    SELECT r.id, r.booking_date, r.start_time, r.end_time, res.name AS resource_name
+    FROM reservations AS r
+    LEFT JOIN resources AS res ON r.resource_id = res.id
+    ORDER BY r.booking_date DESC
+    LIMIT ? OFFSET ?
+";
 
-// Проверяем успешность запроса
-if (!$result) {
-    http_response_code(500);
-    echo json_encode(['message' => 'Error querying database for reservations: ' . mysqli_error($conn)]);
-    mysqli_close($conn);
-    exit();
+$stmt = $conn->prepare($query);
+$stmt->bind_param("ii", $reservationsPerPage, $offset);
+$stmt->execute();
+$result = $stmt->get_result();
+
+$reservations = [];
+while ($row = $result->fetch_assoc()) {
+    $reservations[] = $row;
 }
 
-// Преобразуем результат в массив
-$reservations = mysqli_fetch_all($result, MYSQLI_ASSOC);
+echo json_encode([
+    'status' => 'success',
+    'reservations' => $reservations,
+    'totalReservations' => $totalReservations
+]);
 
-// Проверяем наличие данных и возвращаем JSON
-if (empty($reservations)) {
-    http_response_code(404);
-    echo json_encode(['message' => 'No reservations found', 'totalReservations' => $totalReservations]);
-} else {
-    echo json_encode(['reservations' => $reservations, 'totalReservations' => $totalReservations]);
-}
-
-// Закрываем соединение
-mysqli_close($conn);
+$stmt->close();
+$conn->close();
 ?>

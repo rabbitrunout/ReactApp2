@@ -1,91 +1,116 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 
 function ReservationsList() {
-    const [reservations, setReservations] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalReservations, setTotalReservations] = useState(0);
-    const reservationsPerPage = 4; // Должно совпадать с PHP
+  const [reservations, setReservations] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalReservations, setTotalReservations] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchReservations = async () => {
-            setIsLoading(true);
-            try {
-                const response = await axios.get(
-                    `${process.env.REACT_APP_API_BASE_URL}/reservations.php?page=${currentPage}`
-                );
-                setReservations(response.data.reservations || []);
-                setTotalReservations(response.data.totalReservations || 0);
-                setIsLoading(false);
-            } catch (err) {
-                console.error(err);
-                setError("Failed to load reservations.");
-                setIsLoading(false);
-            }
-        };
-        fetchReservations();
-    }, [currentPage]);
+  const reservationsPerPage = 4;
 
-    const totalPages = Math.ceil(totalReservations / reservationsPerPage);
-    const goToPreviousPage = () => setCurrentPage(currentPage - 1);
-    const goToNextPage = () => setCurrentPage(currentPage + 1);
+  useEffect(() => {
+    const fetchReservations = async () => {
+      setIsLoading(true);
+      try {
+        const res = await axios.get(
+          `${process.env.REACT_APP_API_BASE_URL}/reservations.php?page=${currentPage}`
+        );
+        setReservations(res.data.reservations);
+        setTotalReservations(res.data.totalReservations);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchReservations();
+  }, [currentPage]);
 
-    return (
-        <div className="container mt-5">
-            <h2 className="mb-4">Reservations List</h2>
-            {error && <div className="alert alert-danger">{error}</div>}
+  const totalPages = Math.ceil(totalReservations / reservationsPerPage);
+  const goToPreviousPage = () => setCurrentPage((p) => Math.max(p - 1, 1));
+  const goToNextPage = () => setCurrentPage((p) => Math.min(p + 1, totalPages));
 
-            <div className="row">
-                {isLoading ? (
-                    <p>Loading reservations...</p>
-                ) : reservations.length ? (
-                    reservations.map(r => (
-                        <div className="col-md-6" key={r.id}>
-                            <div className="card mb-4">
-                                <div className="card-body">
-                                    <p className="card-text">
-                                        <b>Date:</b> {r.booking_date}<br />
-                                        <b>Start:</b> {r.start_time}<br />
-                                        <b>End:</b> {r.end_time}<br />
-                                        <b>Resource:</b> {r.resource_id}
-                                    </p>
-                                    <Link to={`/reservation/${r.id}`} className="btn btn-primary">
-                                        View Details
-                                    </Link>
-                                </div>
-                            </div>
-                        </div>
-                    ))
-                ) : (
-                    <p>No reservations found.</p>
-                )}
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "confirmed":
+        return "green";
+      case "cancelled":
+        return "red";
+      default:
+        return "orange"; // pending
+    }
+  };
+
+  return (
+    <div className="container mt-4">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h2>Reservations</h2>
+        <Link to="/create-reservation" className="btn btn-success">
+          Create New Reservation
+        </Link>
+      </div>
+
+      {isLoading ? (
+        <p>Loading reservations...</p>
+      ) : (
+        reservations.map((r) => (
+          <div key={r.id} className="card mb-3">
+            <div className="card-body">
+              <p>
+                <b>Date:</b> {r.booking_date}<br />
+                <b>Start:</b> {r.start_time}<br />
+                <b>End:</b> {r.end_time}<br />
+                <b>Resource:</b> {r.resource_name || "Unknown"}<br />
+                <b>Status:</b>{" "}
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+                  <span
+                    style={{
+                      width: "12px",
+                      height: "12px",
+                      borderRadius: "50%",
+                      backgroundColor: getStatusColor(r.status),
+                    }}
+                  />
+                  {r.status || "pending"}
+                </span>
+              </p>
+              <Link to={`/reservation/${r.id}`} className="btn btn-primary">
+                View
+              </Link>
             </div>
+          </div>
+        ))
+      )}
 
-            {/* Pagination */}
-            <nav aria-label="Reservations pagination">
-                <ul className="pagination">
-                    <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                        <button className="page-link" onClick={goToPreviousPage}>Previous</button>
-                    </li>
-
-                    {Array.from({ length: totalPages }, (_, index) => (
-                        <li key={index} className={`page-item ${index + 1 === currentPage ? 'active' : ''}`}>
-                            <button className="page-link" onClick={() => setCurrentPage(index + 1)}>
-                                {index + 1}
-                            </button>
-                        </li>
-                    ))}
-
-                    <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                        <button className="page-link" onClick={goToNextPage}>Next</button>
-                    </li>
-                </ul>
-            </nav>
-        </div>
-    );
+      {/* Pagination */}
+      <nav aria-label="Page navigation">
+        <ul className="pagination">
+          <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
+            <button className="page-link" onClick={goToPreviousPage}>
+              Previous
+            </button>
+          </li>
+          {Array.from({ length: totalPages }, (_, i) => (
+            <li
+              key={i}
+              className={`page-item ${currentPage === i + 1 ? "active" : ""}`}
+            >
+              <button className="page-link" onClick={() => setCurrentPage(i + 1)}>
+                {i + 1}
+              </button>
+            </li>
+          ))}
+          <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
+            <button className="page-link" onClick={goToNextPage}>
+              Next
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  );
 }
 
 export default ReservationsList;

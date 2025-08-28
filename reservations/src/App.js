@@ -4,6 +4,8 @@ import './App.css';
 import Navbar from './components/Navbar';
 import CreateReservation from './components/CreateReservation';
 import ReservationsList from './components/ReservationsList';
+import Reservation from './components/Reservation';
+
 
 function App() {
   return (
@@ -11,10 +13,10 @@ function App() {
       <BrowserRouter>
         <Navbar />
         <Routes>
-          <Route path="/" element={<ReservationsList />} />
-          <Route path="/create-reservation" element={<CreateReservation />} />
-          {/* <Route path="/post/:id" element={<Post />} /> */}
-        </Routes>
+  <Route path="/" element={<ReservationsList />} />
+  <Route path="/create-reservation" element={<CreateReservation />} />
+  <Route path="/reservation/:id" element={<Reservation />} />
+</Routes>
       </BrowserRouter>
     </div>
   );
