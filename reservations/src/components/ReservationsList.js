@@ -2,8 +2,6 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL;
-
 function ReservationsList() {
   const [reservations, setReservations] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -13,14 +11,14 @@ function ReservationsList() {
 
   const reservationsPerPage = 6;
 
+  const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
   useEffect(() => {
     const fetchReservations = async () => {
       setIsLoading(true);
       setError("");
       try {
-        const res = await axios.get(
-          `${API_BASE}/reservations.php?page=${currentPage}`
-        );
+        const res = await axios.get(`${API_BASE}/reservations.php?page=${currentPage}`);
         setReservations(res.data.reservations || []);
         setTotalReservations(res.data.totalReservations || 0);
       } catch (err) {
@@ -32,10 +30,9 @@ function ReservationsList() {
         setIsLoading(false);
       }
     };
-
     fetchReservations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]); // ✅ только зависимость страницы
+  }, [currentPage]);
 
   const totalPages = Math.ceil(totalReservations / reservationsPerPage);
   const goToPreviousPage = () => setCurrentPage((p) => Math.max(p - 1, 1));
@@ -63,10 +60,7 @@ function ReservationsList() {
 
       {isLoading && <p>Loading reservations...</p>}
       {error && <div className="alert alert-danger">{error}</div>}
-
-      {!isLoading && !error && reservations.length === 0 && (
-        <p>No reservations found.</p>
-      )}
+      {!isLoading && !error && reservations.length === 0 && <p>No reservations found.</p>}
 
       <div className="row">
         {reservations.map((r) => (
@@ -80,18 +74,20 @@ function ReservationsList() {
                 }
                 className="card-img-top"
                 alt="Reservation"
-                style={{ objectFit: "cover", height: "200px", width: "100%" }}
+                style={{
+                  height: "250px",
+                  width: "100%",
+                  objectFit: r.imageName ? "cover" : "contain",
+                  objectPosition: "center",
+                  backgroundColor: r.imageName ? "transparent" : "#f0f0f0",
+                }}
               />
               <div className="card-body d-flex flex-column">
                 <p className="card-text mb-2">
-                  <b>Date:</b> {r.booking_date}
-                  <br />
-                  <b>Start:</b> {r.start_time}
-                  <br />
-                  <b>End:</b> {r.end_time}
-                  <br />
-                  <b>Resource:</b> {r.resource_name || "Unknown"}
-                  <br />
+                  <b>Date:</b> {r.booking_date}<br />
+                  <b>Start:</b> {r.start_time}<br />
+                  <b>End:</b> {r.end_time}<br />
+                  <b>Resource:</b> {r.resource_name || "Unknown"}<br />
                   <b>Status:</b>{" "}
                   <span
                     style={{
@@ -123,7 +119,6 @@ function ReservationsList() {
         ))}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <nav aria-label="Page navigation">
           <ul className="pagination justify-content-center mt-4">
@@ -137,19 +132,12 @@ function ReservationsList() {
                 key={i}
                 className={`page-item ${currentPage === i + 1 ? "active" : ""}`}
               >
-                <button
-                  className="page-link"
-                  onClick={() => setCurrentPage(i + 1)}
-                >
+                <button className="page-link" onClick={() => setCurrentPage(i + 1)}>
                   {i + 1}
                 </button>
               </li>
             ))}
-            <li
-              className={`page-item ${
-                currentPage === totalPages ? "disabled" : ""
-              }`}
-            >
+            <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
               <button className="page-link" onClick={goToNextPage}>
                 Next
               </button>
