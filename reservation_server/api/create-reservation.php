@@ -1,4 +1,7 @@
 <?php
+
+session_start();
+
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
@@ -12,6 +15,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once('../config/config.php');
 require_once('../config/database.php');
+
+// 🔒 Require authentication
+if (!isset($_SESSION['user'])) {
+    http_response_code(401);
+    echo json_encode(["success" => false, "message" => "Unauthorized"]);
+    exit;
+}
 
 // Проверка обязательных полей
 if (!isset($_POST['bookingDate'], $_POST['startTime'], $_POST['endTime'], $_POST['resourceId'])) {

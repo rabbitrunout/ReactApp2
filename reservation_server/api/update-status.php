@@ -1,9 +1,20 @@
 <?php
+
+session_start();
+
 // Разрешаем CORS
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
+
+
+// 🔒 Require authentication
+if (!isset($_SESSION['user'])) {
+    http_response_code(401);
+    echo json_encode(["success" => false, "message" => "Unauthorized"]);
+    exit;
+}
 
 // Обработка preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {

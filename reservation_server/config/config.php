@@ -14,6 +14,7 @@ if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
     header('Access-Control-Allow-Methods: ' . implode(', ', $allowedMethods));
 }
 
+
 if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) {
     $requestHeaders = explode(',', $_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']);
     $requestHeaders = array_map('trim', $requestHeaders); // Trim whitespace from headers
