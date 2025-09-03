@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from "react";
+// src/components/CreateReservation.js
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { AuthContext } from "../context/AuthContext";
 
 function CreateReservation() {
+  const { user } = useContext(AuthContext); // используем user
   const [bookingDate, setBookingDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -15,11 +18,20 @@ function CreateReservation() {
 
   const navigate = useNavigate();
 
+  // Перенаправление неавторизованных пользователей
+  useEffect(() => {
+    if (!user) {
+      navigate("/login");
+    }
+  }, [user, navigate]);
+
   // Получаем список ресурсов для селекта
   useEffect(() => {
     const fetchResources = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/resources.php`);
+        const res = await axios.get(
+          `${process.env.REACT_APP_API_BASE_URL}/resources.php`
+        );
         setResources(res.data.resources || []);
       } catch (err) {
         console.error("Error fetching resources:", err);
@@ -29,7 +41,6 @@ function CreateReservation() {
     fetchResources();
   }, []);
 
-  // Обработчик отправки формы
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -53,12 +64,11 @@ function CreateReservation() {
       const res = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/create-reservation.php`,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        { headers: { "Content-Type": "multipart/form-data" }, withCredentials: true }
       );
 
-      if (res.data.status === "success") {
-        setMessage(res.data.message);
-        console.log("Uploaded image:", res.data.imageName);
+      if (res.data.success) {
+        setMessage(res.data.message); // ✅ Зеленое сообщение
 
         // Очистка полей формы
         setBookingDate("");
@@ -67,8 +77,10 @@ function CreateReservation() {
         setResourceId("");
         setImage(null);
 
-        // Переход на страницу со списком резерваций
-        navigate("/reservations");
+        // Через 1.5 секунды редирект на главную страницу
+        setTimeout(() => {
+          navigate("/");
+        }, 1500);
       } else {
         setError(res.data.message || "Failed to create reservation.");
       }

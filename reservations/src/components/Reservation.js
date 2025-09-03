@@ -7,44 +7,44 @@ function Reservation() {
   const [reservation, setReservation] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [statusUpdating, setStatusUpdating] = useState(false);
 
-  // Получаем данные резервации
+  const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
   const fetchReservation = async () => {
+    setIsLoading(true);
+    setError("");
     try {
-      const res = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/reservation.php?id=${id}`
-      );
+      const res = await axios.get(`${API_BASE}/reservation.php?id=${id}`);
       if (res.data.status === "success" && res.data.data) {
         setReservation(res.data.data);
-        setError("");
       } else {
         setError("Reservation not found.");
       }
     } catch (err) {
-      console.error("Error fetching reservation:", err);
+      console.error(err);
       setError("Failed to fetch reservation.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Обновление статуса резервации
-  const updateStatus = async (id, newStatus) => {
+  const updateStatus = async (newStatus) => {
+    if (!reservation) return;
+    setStatusUpdating(true);
     try {
-      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/update-status.php`, {
-        id,
+      await axios.post(`${API_BASE}/update-status.php`, {
+        id: reservation.id,
         status: newStatus,
       });
-      fetchReservation(); // обновляем данные после изменения статуса
+      await fetchReservation(); // Обновляем данные после изменения
     } catch (err) {
       console.error("Error updating status:", err.response?.data || err.message);
+      alert("Failed to update status. Check console for details.");
+    } finally {
+      setStatusUpdating(false);
     }
   };
-
-  useEffect(() => {
-    fetchReservation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -53,9 +53,14 @@ function Reservation() {
       case "cancelled":
         return "red";
       default:
-        return "orange"; // pending
+        return "orange";
     }
   };
+
+  useEffect(() => {
+    fetchReservation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div className="alert alert-danger">{error}</div>;
@@ -82,13 +87,12 @@ function Reservation() {
         </span>
       </p>
 
-      {/* 🖼️ Загруженное изображение */}
       {reservation.imageName && (
         <div className="my-3">
           <b>Uploaded Image:</b>
           <br />
           <img
-            src={`${process.env.REACT_APP_API_BASE_URL}/uploads/${reservation.imageName}`}
+            src={`${API_BASE}/uploads/${reservation.imageName}`}
             alt="Reservation"
             style={{ maxWidth: "400px", borderRadius: "10px", marginTop: "10px" }}
           />
@@ -99,17 +103,19 @@ function Reservation() {
         {reservation.status !== "confirmed" && (
           <button
             className="btn btn-success"
-            onClick={() => updateStatus(reservation.id, "confirmed")}
+            onClick={() => updateStatus("confirmed")}
+            disabled={statusUpdating}
           >
-            Confirm
+            {statusUpdating ? "Updating..." : "Confirm"}
           </button>
         )}
         {reservation.status !== "cancelled" && (
           <button
             className="btn btn-danger"
-            onClick={() => updateStatus(reservation.id, "cancelled")}
+            onClick={() => updateStatus("cancelled")}
+            disabled={statusUpdating}
           >
-            Cancel
+            {statusUpdating ? "Updating..." : "Cancel"}
           </button>
         )}
       </div>

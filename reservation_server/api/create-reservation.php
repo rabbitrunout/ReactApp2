@@ -1,11 +1,13 @@
 <?php
-
 session_start();
 
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Origin: http://localhost:3000");
+// CORS headers
+$allowedOrigin = "http://localhost:3000"; // твой React фронтенд
+header("Access-Control-Allow-Origin: $allowedOrigin");
+header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+header("Content-Type: application/json; charset=UTF-8");
 
 // Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -26,7 +28,7 @@ if (!isset($_SESSION['user'])) {
 // Проверка обязательных полей
 if (!isset($_POST['bookingDate'], $_POST['startTime'], $_POST['endTime'], $_POST['resourceId'])) {
     http_response_code(400);
-    echo json_encode(["status" => "error", "message" => "Missing required fields"]);
+    echo json_encode(["success" => false, "message" => "Missing required fields"]);
     exit();
 }
 
@@ -37,61 +39,37 @@ $resource_id  = (int)$_POST['resourceId'];
 
 // Папка для загрузки файлов
 $uploadDir = __DIR__ . "/uploads/";
-
-// Создаём папку, если её нет
-if (!is_dir($uploadDir)) {
-    mkdir($uploadDir, 0755, true);
-}
+if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
 
 // Обработка файла
-$imageName = "placeholder_100.jpg"; // по умолчанию
+$imageName = "placeholder_100.jpg";
 if (!empty($_FILES['image']['name'])) {
-    $originalName = basename($_FILES['image']['name']);
-    $imageName = $originalName; // сохраняем оригинальное имя
+    $imageName = basename($_FILES['image']['name']);
     $targetFile = $uploadDir . $imageName;
-
     if (!move_uploaded_file($_FILES['image']['tmp_name'], $targetFile)) {
         http_response_code(500);
-        echo json_encode([
-            "status" => "error",
-            "message" => "Error uploading image",
-            "php_error" => $_FILES['image']['error']
-        ]);
+        echo json_encode(["success" => false, "message" => "Error uploading image"]);
         exit();
-    }
-} else {
-    // Если нет файла, убедимся, что placeholder существует в папке
-    $placeholderPath = $uploadDir . $imageName;
-    if (!file_exists($placeholderPath)) {
-        // Копируем placeholder из корня проекта или другой папки
-        copy(__DIR__ . "/placeholder_100.jpg", $placeholderPath);
     }
 }
 
-// Вставка данных в таблицу
+// Вставка в таблицу
 $stmt = $conn->prepare("
     INSERT INTO reservations (booking_date, start_time, end_time, resource_id, status, imageName)
     VALUES (?, ?, ?, ?, 'pending', ?)
 ");
-
-// 5 параметров: date, time, time, int, string
 $stmt->bind_param("sssis", $booking_date, $start_time, $end_time, $resource_id, $imageName);
 
 if ($stmt->execute()) {
-    http_response_code(201);
     echo json_encode([
-        "status" => "success",
+        "success" => true,
         "message" => "Reservation created successfully",
         "reservation_id" => $stmt->insert_id,
         "imageName" => $imageName
     ]);
 } else {
     http_response_code(500);
-    echo json_encode([
-        "status" => "error",
-        "message" => "Failed to create reservation",
-        "error" => $stmt->error
-    ]);
+    echo json_encode(["success" => false, "message" => "Failed to create reservation", "error" => $stmt->error]);
 }
 
 $stmt->close();

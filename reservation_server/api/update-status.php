@@ -1,53 +1,57 @@
 <?php
-
-session_start();
-
-// Разрешаем CORS
-header("Content-Type: application/json");
+header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 
-
-// 🔒 Require authentication
-if (!isset($_SESSION['user'])) {
-    http_response_code(401);
-    echo json_encode(["success" => false, "message" => "Unauthorized"]);
-    exit;
-}
-
-// Обработка preflight
+// Обработка preflight-запроса
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
-require_once('../config/config.php');     // подключение конфига
-require_once('../config/database.php');   // подключение к базе
+require_once('../config/config.php');
+require_once('../config/database.php');
 
-// Получаем JSON из тела запроса
+// Получаем JSON из POST
 $data = json_decode(file_get_contents('php://input'), true);
 
-if (empty($data['id']) || empty($data['status'])) {
+if (!isset($data['id'], $data['status'])) {
     http_response_code(400);
-    echo json_encode(['message' => 'Missing required fields']);
+    echo json_encode(['status' => 'error', 'message' => 'Missing ID or status']);
     exit();
 }
 
 $id = (int)$data['id'];
-$status = filter_var($data['status'], FILTER_SANITIZE_STRING);
+$status = $data['status'];
 
-// Проверяем, что поле status существует в таблице
-$stmt = $conn->prepare("UPDATE reservations SET status=? WHERE id=?");
+// Проверка статуса
+$allowedStatuses = ['confirmed', 'cancelled', 'pending'];
+if (!in_array($status, $allowedStatuses)) {
+    http_response_code(400);
+    echo json_encode(['status' => 'error', 'message' => 'Invalid status']);
+    exit();
+}
+
+// Обновляем статус в базе
+$stmt = $conn->prepare("UPDATE reservations SET status = ? WHERE id = ?");
+if (!$stmt) {
+    http_response_code(500);
+    echo json_encode(['status' => 'error', 'message' => $conn->error]);
+    exit();
+}
+
 $stmt->bind_param("si", $status, $id);
 
 if ($stmt->execute()) {
-    echo json_encode(["message" => "Status updated successfully"]);
+    echo json_encode(['status' => 'success', 'message' => 'Status updated']);
 } else {
     http_response_code(500);
-    echo json_encode(["message" => "Error updating status: " . $stmt->error]);
+    echo json_encode(['status' => 'error', 'message' => 'Failed to update status']);
 }
 
 $stmt->close();
 $conn->close();
+
+
 ?>
