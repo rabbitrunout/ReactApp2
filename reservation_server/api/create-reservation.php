@@ -34,16 +34,27 @@ if (!is_dir($uploadDir)) {
 }
 
 // Обработка файла
-$imageName = null;
+$imageName = "placeholder_100.jpg"; // по умолчанию
 if (!empty($_FILES['image']['name'])) {
-     $originalName = basename($_FILES['image']['name']);
+    $originalName = basename($_FILES['image']['name']);
     $imageName = $originalName; // сохраняем оригинальное имя
     $targetFile = $uploadDir . $imageName;
 
     if (!move_uploaded_file($_FILES['image']['tmp_name'], $targetFile)) {
         http_response_code(500);
-        echo json_encode(["status" => "error", "message" => "Error uploading image", "php_error" => $_FILES['image']['error']]);
+        echo json_encode([
+            "status" => "error",
+            "message" => "Error uploading image",
+            "php_error" => $_FILES['image']['error']
+        ]);
         exit();
+    }
+} else {
+    // Если нет файла, убедимся, что placeholder существует в папке
+    $placeholderPath = $uploadDir . $imageName;
+    if (!file_exists($placeholderPath)) {
+        // Копируем placeholder из корня проекта или другой папки
+        copy(__DIR__ . "/placeholder_100.jpg", $placeholderPath);
     }
 }
 
@@ -53,7 +64,7 @@ $stmt = $conn->prepare("
     VALUES (?, ?, ?, ?, 'pending', ?)
 ");
 
-// Исправленная строка типов: 5 параметров (date, time, time, int, string)
+// 5 параметров: date, time, time, int, string
 $stmt->bind_param("sssis", $booking_date, $start_time, $end_time, $resource_id, $imageName);
 
 if ($stmt->execute()) {
