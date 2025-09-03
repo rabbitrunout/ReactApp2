@@ -36,8 +36,8 @@ if (!is_dir($uploadDir)) {
 // Обработка файла
 $imageName = null;
 if (!empty($_FILES['image']['name'])) {
-    $originalName = basename($_FILES['image']['name']);
-    $imageName = time() . "_" . preg_replace("/[^a-zA-Z0-9\._-]/", "_", $originalName);
+     $originalName = basename($_FILES['image']['name']);
+    $imageName = $originalName; // сохраняем оригинальное имя
     $targetFile = $uploadDir . $imageName;
 
     if (!move_uploaded_file($_FILES['image']['tmp_name'], $targetFile)) {
