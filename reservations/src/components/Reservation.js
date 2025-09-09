@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 function Reservation() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [reservation, setReservation] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -37,7 +38,7 @@ function Reservation() {
         id: reservation.id,
         status: newStatus,
       });
-      await fetchReservation(); // Обновляем данные после изменения
+      await fetchReservation(); // обновляем после изменения
     } catch (err) {
       console.error("Error updating status:", err.response?.data || err.message);
       alert("Failed to update status. Check console for details.");
@@ -118,6 +119,13 @@ function Reservation() {
             {statusUpdating ? "Updating..." : "Cancel"}
           </button>
         )}
+        {/* Новая кнопка для редактирования */}
+        <button
+          className="btn btn-warning"
+          onClick={() => navigate(`/edit-reservation/${reservation.id}`)}
+        >
+          Edit
+        </button>
       </div>
 
       <Link to="/" className="btn btn-primary mt-3">

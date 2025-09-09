@@ -9,6 +9,7 @@ import Register from "./components/Register";
 import ReservationsList from "./components/ReservationsList";
 import Reservation from "./components/Reservation";
 import CreateReservation from "./components/CreateReservation";
+import EditReservation from "./components/EditReservation"; // новый компонент
 
 function App() {
   return (
@@ -43,6 +44,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <CreateReservation />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/edit-reservation/:id"
+            element={
+              <ProtectedRoute>
+                <EditReservation />
               </ProtectedRoute>
             }
           />
