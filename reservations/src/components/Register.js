@@ -1,4 +1,3 @@
-// src/components/Register.js
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
@@ -16,27 +15,40 @@ function Register() {
     setError("");
     setSuccess("");
 
+    // ✅ Простая валидация email
+    const emailRegex = /\S+@\S+\.\S+/;
+    if (!emailRegex.test(emailAddress)) {
+      setError("Invalid email format");
+      return;
+    }
+
     try {
       const res = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/register.php`,
-        { userName, emailAddress, password }
+        { userName, emailAddress, password },
+        { withCredentials: true }
       );
+
       if (res.data.success) {
         setSuccess("Registration successful. You can now log in.");
         setTimeout(() => navigate("/login"), 1500);
       } else {
+        // ✅ Показываем сообщение об ошибке, если username или email уже заняты
         setError(res.data.message);
       }
     } catch (err) {
-      setError("Registration failed");
+      setError("Registration failed. Please try again.");
+      console.error(err);
     }
   };
 
   return (
     <div className="container mt-4">
       <h2>Register</h2>
+
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
+
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
           <label>Username</label>
@@ -48,6 +60,7 @@ function Register() {
             required
           />
         </div>
+
         <div className="mb-3">
           <label>Email Address</label>
           <input
@@ -58,6 +71,7 @@ function Register() {
             required
           />
         </div>
+
         <div className="mb-3">
           <label>Password</label>
           <input
@@ -68,8 +82,12 @@ function Register() {
             required
           />
         </div>
-        <button className="btn btn-primary" type="submit">Register</button>
+
+        <button className="btn btn-primary" type="submit">
+          Register
+        </button>
       </form>
+
       <p className="mt-3">
         Already have an account? <Link to="/login">Login</Link>
       </p>

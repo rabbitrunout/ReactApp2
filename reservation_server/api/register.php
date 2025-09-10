@@ -1,14 +1,16 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 session_start();
 
 // ✅ CORS-заголовки
-header("Access-Control-Allow-Origin: http://localhost:3000"); // твой фронтенд
+header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Credentials: true");
 header("Content-Type: application/json");
 
-// ✅ Обработка preflight-запроса
+// ✅ Preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
@@ -29,14 +31,14 @@ $userName = mysqli_real_escape_string($conn, $data['userName']);
 $emailAddress = mysqli_real_escape_string($conn, $data['emailAddress']);
 $passwordHash = password_hash($data['password'], PASSWORD_BCRYPT);
 
-// ✅ Проверка, есть ли уже такой пользователь
-$check = $conn->prepare("SELECT registrationID FROM registrations WHERE userName = ?");
-$check->bind_param("s", $userName);
+// ✅ Проверка уникальности username и email одновременно
+$check = $conn->prepare("SELECT registrationID FROM registrations WHERE userName = ? OR emailAddress = ?");
+$check->bind_param("ss", $userName, $emailAddress);
 $check->execute();
 $check->store_result();
 
 if ($check->num_rows > 0) {
-    echo json_encode(["success" => false, "message" => "Username already taken"]);
+    echo json_encode(["success" => false, "message" => "Username or email already taken"]);
     exit;
 }
 $check->close();
