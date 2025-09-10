@@ -4,37 +4,48 @@ import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 
 const Navbar = () => {
-  const { user, setUser, logout } = useContext(AuthContext);
+  const { user, setUser } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // Проверка авторизации
+  // ✅ Проверка авторизации при загрузке
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        if (!user) {
-          const response = await fetch(
-            `${process.env.REACT_APP_API_BASE_URL}/checkAuth.php`,
-            { credentials: "include" }
-          );
-          const data = await response.json();
-          if (data.success && data.user) {
-            setUser(data.user);
-          }
+        const response = await fetch(
+          `${process.env.REACT_APP_API_BASE_URL}/checkAuth.php`,
+          { credentials: "include" }
+        );
+        const data = await response.json();
+        if (data.success && data.user) {
+          setUser(data.user);
+        } else {
+          setUser(null);
         }
       } catch (err) {
         console.error("Auth check failed", err);
+        setUser(null);
       }
     };
     checkAuth();
-  }, [user, setUser]);
+  }, [setUser]);
 
+  // ✅ Logout
   const handleLogout = async () => {
     try {
-      await logout();
+      const res = await fetch(
+        `${process.env.REACT_APP_API_BASE_URL}/logout.php`,
+        { method: "POST", credentials: "include" }
+      );
+      const data = await res.json();
+
+      if (data.success) {
+        setUser(null); // сброс состояния пользователя
+        navigate("/login"); // редирект на логин
+      } else {
+        console.error("Logout failed:", data.message);
+      }
     } catch (err) {
       console.error("Logout failed", err);
-    } finally {
-      navigate("/login");
     }
   };
 
