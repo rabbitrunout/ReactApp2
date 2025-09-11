@@ -20,8 +20,15 @@ function Register() {
     setSuccess("");
 
     try {
+      // Формируем payload
       const payload = { userName, emailAddress, password, role };
-      if (role === "admin") payload.secretKey = adminSecret;
+      if (role === "admin") {
+        if (!adminSecret) {
+          setError("Admin secret is required to register as admin");
+          return;
+        }
+        payload.secretKey = adminSecret;
+      }
 
       const res = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/register.php`,
@@ -51,22 +58,44 @@ function Register() {
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
           <label>Username</label>
-          <input type="text" className="form-control" value={userName} onChange={(e) => setUserName(e.target.value)} required />
+          <input
+            type="text"
+            className="form-control"
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+            required
+          />
         </div>
 
         <div className="mb-3">
           <label>Email Address</label>
-          <input type="email" className="form-control" value={emailAddress} onChange={(e) => setEmailAddress(e.target.value)} required />
+          <input
+            type="email"
+            className="form-control"
+            value={emailAddress}
+            onChange={(e) => setEmailAddress(e.target.value)}
+            required
+          />
         </div>
 
         <div className="mb-3">
           <label>Password</label>
-          <input type="password" className="form-control" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <input
+            type="password"
+            className="form-control"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
         </div>
 
         <div className="mb-3">
           <label>Role</label>
-          <select className="form-control" value={role} onChange={(e) => setRole(e.target.value)}>
+          <select
+            className="form-control"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+          >
             <option value="user">User</option>
             <option value="guest">Guest</option>
             <option value="admin">Admin</option>
@@ -76,15 +105,25 @@ function Register() {
         {role === "admin" && (
           <div className="mb-3">
             <label>Admin Secret</label>
-            <input type="password" className="form-control" value={adminSecret} onChange={(e) => setAdminSecret(e.target.value)} required />
-            <small className="text-muted">Use 'secret' to register as admin.</small>
+            <input
+              type="password"
+              className="form-control"
+              value={adminSecret}
+              onChange={(e) => setAdminSecret(e.target.value)}
+              required
+            />
+            {/* <small className="text-muted">Use 'secret' to register as admin.</small> */}
           </div>
         )}
 
-        <button className="btn btn-primary" type="submit">Register</button>
+        <button className="btn btn-primary" type="submit">
+          Register
+        </button>
       </form>
 
-      <p className="mt-3">Already have an account? <Link to="/login">Login</Link></p>
+      <p className="mt-3">
+        Already have an account? <Link to="/login">Login</Link>
+      </p>
     </div>
   );
 }

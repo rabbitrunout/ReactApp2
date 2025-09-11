@@ -33,18 +33,13 @@ $emailAddress = mysqli_real_escape_string($conn, $data['emailAddress']);
 $passwordHash = password_hash($data['password'], PASSWORD_BCRYPT);
 $role = mysqli_real_escape_string($conn, $data['role']);
 
-// ✅ Админ-секрет фиксирован как 'secret'
-// $adminSecret = 'secret';
-// if ($role === "admin") {
-//     if (!isset($data['secretKey']) || $data['secretKey'] !== $adminSecret) {
-//         echo json_encode(["success" => false, "message" => "Invalid admin secret"]);
-//         exit;
-//     }
-// }
-
-// Set role (default to 'user' if not provided)
-$role = isset($data['role']) ? mysqli_real_escape_string($conn, $data['role']) : 'user';
-
+// ✅ Проверка секрета для роли admin
+if ($role === "admin") {
+    if (!isset($data['secretKey']) || $data['secretKey'] !== 'secret') {
+        echo json_encode(["success" => false, "message" => "Invalid admin secret"]);
+        exit;
+    }
+}
 
 // ✅ Проверка уникальности username/email
 $check = $conn->prepare("SELECT registrationID FROM registrations WHERE userName = ? OR emailAddress = ?");
