@@ -67,7 +67,7 @@ function ReservationsList() {
   };
 
   const handleEditClick = (reservation) => {
-    setEditingReservation({ ...reservation }); // копия данных
+    setEditingReservation({ ...reservation });
     setImageFile(null);
     setUpdateError("");
     setUpdateSuccess("");
@@ -96,7 +96,7 @@ function ReservationsList() {
       formData.append("booking_date", editingReservation.booking_date);
       formData.append("start_time", editingReservation.start_time);
       formData.append("end_time", editingReservation.end_time);
-      formData.append("resource_id", editingReservation.resource_id); // обязательно resource_id
+      formData.append("resource_id", editingReservation.resource_id);
       if (imageFile) formData.append("image", imageFile);
 
       const res = await axios.post(`${API_BASE}/update-reservation.php`, formData, {
@@ -116,6 +116,21 @@ function ReservationsList() {
       setUpdateError("Error updating reservation");
     } finally {
       setUpdateLoading(false);
+    }
+  };
+
+  // Новая функция удаления бронирования
+  const handleDelete = async (reservationId) => {
+    if (!window.confirm("Are you sure you want to delete this reservation?")) return;
+
+    try {
+      await axios.post(`${API_BASE}/delete-reservation.php`, { id: reservationId }, {
+        withCredentials: true,
+      });
+      fetchReservations();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete reservation. Check console for details.");
     }
   };
 
@@ -180,6 +195,9 @@ function ReservationsList() {
                   <button className="btn btn-warning flex-grow-1" onClick={() => handleEditClick(r)}>
                     Edit
                   </button>
+                  <button className="btn btn-danger flex-grow-1" onClick={() => handleDelete(r.id)}>
+                    Delete
+                  </button>
                 </div>
               </div>
             </div>
@@ -205,7 +223,6 @@ function ReservationsList() {
         </nav>
       )}
 
-      {/* Модалка */}
       {editingReservation && (
         <div className="modal show d-block" tabIndex="-1" role="dialog" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
           <div className="modal-dialog">

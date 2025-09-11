@@ -1,12 +1,17 @@
 <?php
-// Заголовки для CORS и JSON
-header("Content-Type: application/json");
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
-// Обработка preflight OPTIONS запроса
+session_start();
+
+// ✅ Универсальные CORS-заголовки
+header("Access-Control-Allow-Origin: http://localhost:3000"); // твой фронтенд
+header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Content-Type: application/json");
+
+// ✅ Обработка preflight-запроса (OPTIONS)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();

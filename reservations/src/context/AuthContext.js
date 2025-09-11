@@ -1,5 +1,5 @@
 // src/context/AuthContext.js
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useContext } from "react";
 import axios from "axios";
 
 export const AuthContext = createContext();
@@ -12,9 +12,10 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/checkAuth.php`, {
-          withCredentials: true
-        });
+        const res = await axios.get(
+          `${process.env.REACT_APP_API_BASE_URL}/checkAuth.php`,
+          { withCredentials: true }
+        );
         if (res.data.success) {
           setUser(res.data.user);
         } else {
@@ -34,4 +35,9 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
+};
+
+// ✅ Хук, которого у тебя не хватало
+export const useAuth = () => {
+  return useContext(AuthContext);
 };
