@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 
 function ReservationsList() {
   const [reservations, setReservations] = useState([]);
@@ -17,6 +18,7 @@ function ReservationsList() {
   const [updateSuccess, setUpdateSuccess] = useState("");
 
   const reservationsPerPage = 6;
+  const { user, loading } = useAuth(); // получаем пользователя и статус загрузки
   const API_BASE = process.env.REACT_APP_API_BASE_URL;
 
   useEffect(() => {
@@ -29,7 +31,9 @@ function ReservationsList() {
     setIsLoading(true);
     setError("");
     try {
-      const res = await axios.get(`${API_BASE}/reservations.php?page=${currentPage}`);
+      const res = await axios.get(`${API_BASE}/reservations.php?page=${currentPage}`, {
+        withCredentials: true,
+      });
       setReservations(res.data.reservations || []);
       setTotalReservations(res.data.totalReservations || 0);
     } catch (err) {
@@ -44,7 +48,7 @@ function ReservationsList() {
 
   const fetchResources = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/resources.php`);
+      const res = await axios.get(`${API_BASE}/resources.php`, { withCredentials: true });
       setResources(res.data.resources || []);
     } catch (err) {
       console.error("Failed to fetch resources:", err);
@@ -119,7 +123,6 @@ function ReservationsList() {
     }
   };
 
-  // Новая функция удаления бронирования
   const handleDelete = async (reservationId) => {
     if (!window.confirm("Are you sure you want to delete this reservation?")) return;
 
@@ -134,13 +137,20 @@ function ReservationsList() {
     }
   };
 
+  if (loading) {
+    return <p>Loading user info...</p>;
+  }
+
+  // Для отладки: показываем роль пользователя
+  console.log("Current user:", user);
+
   return (
     <div className="container mt-4">
       <h2>All Reservations</h2>
 
       {isLoading && <p>Loading reservations...</p>}
       {error && <div className="alert alert-danger">{error}</div>}
-      {!isLoading && !error && reservations.length === 0 && <p>No reservations found.</p>}
+      {!isLoading && reservations.length === 0 && <p>No reservations found.</p>}
 
       <div className="row">
         {reservations.map((r) => (
@@ -188,16 +198,29 @@ function ReservationsList() {
                     {r.status || "pending"}
                   </span>
                 </p>
+
                 <div className="d-flex gap-2 mt-auto">
                   <Link to={`/reservation/${r.id}`} className="btn btn-primary flex-grow-1">
                     View
                   </Link>
-                  <button className="btn btn-warning flex-grow-1" onClick={() => handleEditClick(r)}>
-                    Edit
-                  </button>
-                  <button className="btn btn-danger flex-grow-1" onClick={() => handleDelete(r.id)}>
-                    Delete
-                  </button>
+
+                  {/* Кнопки редактирования и удаления только для админа */}
+                  {user?.role?.toLowerCase() === "admin" && (
+                    <>
+                      <button
+                        className="btn btn-warning flex-grow-1"
+                        onClick={() => handleEditClick(r)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="btn btn-danger flex-grow-1"
+                        onClick={() => handleDelete(r.id)}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -223,7 +246,8 @@ function ReservationsList() {
         </nav>
       )}
 
-      {editingReservation && (
+      {/* Модальное окно редактирования */}
+      {editingReservation && user?.role?.toLowerCase() === "admin" && (
         <div className="modal show d-block" tabIndex="-1" role="dialog" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
           <div className="modal-dialog">
             <div className="modal-content">

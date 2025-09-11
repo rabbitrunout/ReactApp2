@@ -1,4 +1,3 @@
-// src/context/AuthContext.js
 import React, { createContext, useState, useEffect, useContext } from "react";
 import axios from "axios";
 
@@ -8,7 +7,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if already logged in on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -21,12 +19,14 @@ export const AuthProvider = ({ children }) => {
         } else {
           setUser(null);
         }
-      } catch {
+      } catch (err) {
+        console.error("Auth check failed:", err);
         setUser(null);
       } finally {
         setLoading(false);
       }
     };
+
     checkAuth();
   }, []);
 
@@ -37,7 +37,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// ✅ Хук, которого у тебя не хватало
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+// Хук для удобного доступа к контексту
+export const useAuth = () => useContext(AuthContext);

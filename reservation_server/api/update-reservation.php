@@ -19,6 +19,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once('../config/config.php');
 require_once('../config/database.php');
 
+session_start();
+
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(["success" => false, "message" => "Not logged in"]);
+    exit;
+}
+
+// Проверяем роль
+if ($_SESSION['role'] !== 'admin') {
+    echo json_encode(["success" => false, "message" => "Access denied: admin only"]);
+    exit;
+}
+
+
 // Проверяем обязательные поля
 $required = ['id', 'booking_date', 'start_time', 'end_time', 'resource_id'];
 foreach ($required as $field) {

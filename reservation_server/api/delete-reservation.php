@@ -19,11 +19,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// ----------------- Подключение к базе -----------------
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "reservation_db";
+// ----------------- Сессия и проверка авторизации -----------------
+session_start();
+
+if (!isset($_SESSION['user']['registrationID'])) {
+    echo json_encode(["success" => false, "message" => "Not logged in"]);
+    exit;
+}
+
+if (!isset($_SESSION['user']['role']) || $_SESSION['user']['role'] !== 'admin') {
+    echo json_encode(["success" => false, "message" => "Access denied: admin only"]);
+    exit;
+}
+
+// ----------------- Подключение к БД -----------------
+require_once('../config/config.php');
+require_once('../config/database.php');
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) {
@@ -36,18 +47,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = isset($data['id']) ? intval($data['id']) : 0;
 
     if ($id <= 0) {
-        die(json_encode(['success' => false, 'message' => 'Invalid ID']));
+        echo json_encode(['success' => false, 'message' => 'Invalid ID']);
+        exit;
     }
 
     $stmt = $conn->prepare("DELETE FROM reservations WHERE id = ?");
     if (!$stmt) {
-        die(json_encode(['success' => false, 'message' => 'Prepare failed: ' . $conn->error]));
+        echo json_encode(['success' => false, 'message' => 'Prepare failed: ' . $conn->error]);
+        exit;
     }
 
     $stmt->bind_param("i", $id);
 
     if ($stmt->execute()) {
-        echo json_encode(['success' => true]);
+        echo json_encode(['success' => true, 'message' => 'Reservation deleted']);
     } else {
         echo json_encode(['success' => false, 'message' => 'Execute failed: ' . $stmt->error]);
     }
@@ -58,6 +71,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $conn->close();
-
-
 ?>

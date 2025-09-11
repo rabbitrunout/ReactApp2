@@ -34,13 +34,17 @@ $passwordHash = password_hash($data['password'], PASSWORD_BCRYPT);
 $role = mysqli_real_escape_string($conn, $data['role']);
 
 // ✅ Админ-секрет фиксирован как 'secret'
-$adminSecret = 'secret';
-if ($role === "admin") {
-    if (!isset($data['secretKey']) || $data['secretKey'] !== $adminSecret) {
-        echo json_encode(["success" => false, "message" => "Invalid admin secret"]);
-        exit;
-    }
-}
+// $adminSecret = 'secret';
+// if ($role === "admin") {
+//     if (!isset($data['secretKey']) || $data['secretKey'] !== $adminSecret) {
+//         echo json_encode(["success" => false, "message" => "Invalid admin secret"]);
+//         exit;
+//     }
+// }
+
+// Set role (default to 'user' if not provided)
+$role = isset($data['role']) ? mysqli_real_escape_string($conn, $data['role']) : 'user';
+
 
 // ✅ Проверка уникальности username/email
 $check = $conn->prepare("SELECT registrationID FROM registrations WHERE userName = ? OR emailAddress = ?");
@@ -50,18 +54,20 @@ $check->store_result();
 
 if ($check->num_rows > 0) {
     echo json_encode(["success" => false, "message" => "Username or email already taken"]);
+    $check->close();
+    $conn->close();
     exit;
 }
 $check->close();
 
-// ✅ Вставка пользователя
+// ✅ Вставка пользователя с ролью
 $stmt = $conn->prepare("INSERT INTO registrations (userName, password, emailAddress, role) VALUES (?, ?, ?, ?)");
 $stmt->bind_param("ssss", $userName, $passwordHash, $emailAddress, $role);
 
 if ($stmt->execute()) {
     echo json_encode(["success" => true, "message" => "Registration successful"]);
 } else {
-    echo json_encode(["success" => false, "message" => "Registration failed"]);
+    echo json_encode(["success" => false, "message" => "Registration failed: " . $stmt->error]);
 }
 
 $stmt->close();
