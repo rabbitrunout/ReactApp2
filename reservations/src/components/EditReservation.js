@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 function EditReservation() {
@@ -15,34 +15,33 @@ function EditReservation() {
   const [updateSuccess, setUpdateSuccess] = useState("");
   const [imageFile, setImageFile] = useState(null);
 
-  // Загрузка деталей бронирования
-  const fetchReservation = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/reservation.php?id=${id}`);
-      if (res.data.status === "success" && res.data.data) {
-        setReservation(res.data.data);
-      } else {
-        setUpdateError("Reservation not found.");
-      }
-    } catch (err) {
-      console.error(err);
-      setUpdateError("Failed to fetch reservation.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Загрузка списка ресурсов
-  const fetchResources = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/resources.php`);
-      setResources(res.data.resources || []);
-    } catch (err) {
-      console.error("Failed to load resources", err);
-    }
-  };
-
+  // ⚡ Используем useEffect один раз, eslint игнорируем
   useEffect(() => {
+    const fetchReservation = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/reservation.php?id=${id}`, { withCredentials: true });
+        if (res.data.status === "success" && res.data.data) {
+          setReservation(res.data.data);
+        } else {
+          setUpdateError("Reservation not found.");
+        }
+      } catch (err) {
+        console.error(err);
+        setUpdateError("Failed to fetch reservation.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const fetchResources = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/resources.php`, { withCredentials: true });
+        setResources(res.data.resources || []);
+      } catch (err) {
+        console.error("Failed to load resources", err);
+      }
+    };
+
     fetchReservation();
     fetchResources();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,8 +84,8 @@ function EditReservation() {
 
       if (res.data.success) {
         setUpdateSuccess("Reservation updated successfully!");
-        fetchReservation();
-        setTimeout(() => navigate(`/reservation/${id}`), 1000);
+        // ⚡ Обновляем страницу списка после успешного редактирования
+        setTimeout(() => navigate("/"), 1000);
       } else {
         setUpdateError(res.data.message || "Update failed");
       }

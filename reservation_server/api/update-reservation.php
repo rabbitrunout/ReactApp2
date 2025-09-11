@@ -4,68 +4,58 @@ error_reporting(E_ALL);
 
 session_start();
 
-// ✅ Универсальные CORS-заголовки
-header("Access-Control-Allow-Origin: http://localhost:3000"); // твой фронтенд
+// CORS-заголовки
+header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Content-Type: application/json");
 
-// ✅ Обработка preflight-запроса (OPTIONS)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
+
 require_once('../config/config.php');
 require_once('../config/database.php');
 
-session_start();
-
-if (!isset($_SESSION['user_id'])) {
+// Проверка авторизации
+if (!isset($_SESSION['user'])) {
+    http_response_code(401);
     echo json_encode(["success" => false, "message" => "Not logged in"]);
-    exit;
+    exit();
 }
 
-// Проверяем роль
-if ($_SESSION['role'] !== 'admin') {
-    echo json_encode(["success" => false, "message" => "Access denied: admin only"]);
-    exit;
+// Получаем данные POST
+$id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+$booking_date = $_POST['booking_date'] ?? '';
+$start_time = $_POST['start_time'] ?? '';
+$end_time = $_POST['end_time'] ?? '';
+$resource_id = isset($_POST['resource_id']) ? intval($_POST['resource_id']) : 0;
+
+// Обязательные поля
+if (!$id || !$booking_date || !$start_time || !$end_time || !$resource_id) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+    exit();
 }
-
-
-// Проверяем обязательные поля
-$required = ['id', 'booking_date', 'start_time', 'end_time', 'resource_id'];
-foreach ($required as $field) {
-    if (!isset($_POST[$field])) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => "Missing field: $field"]);
-        exit;
-    }
-}
-
-$id = intval($_POST['id']);
-$booking_date = $_POST['booking_date'];
-$start_time = $_POST['start_time'];
-$end_time = $_POST['end_time'];
-$resource_id = intval($_POST['resource_id']);
 
 // Обработка изображения
 $imageName = null;
 if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
     $uploadDir = __DIR__ . "/uploads/";
-    if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
-    }
+    if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
     $imageName = basename($_FILES['image']['name']);
     $targetFile = $uploadDir . $imageName;
     if (!move_uploaded_file($_FILES['image']['tmp_name'], $targetFile)) {
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Failed to upload image']);
-        exit;
+        exit();
     }
 }
 
-// Подготовка SQL
+// SQL: обновляем с изображением или без
 if ($imageName) {
     $stmt = $conn->prepare("UPDATE reservations SET booking_date=?, start_time=?, end_time=?, resource_id=?, imageName=? WHERE id=?");
     $stmt->bind_param("sssisi", $booking_date, $start_time, $end_time, $resource_id, $imageName, $id);
@@ -74,7 +64,7 @@ if ($imageName) {
     $stmt->bind_param("sssii", $booking_date, $start_time, $end_time, $resource_id, $id);
 }
 
-// Выполнение запроса
+// Выполнение
 if ($stmt->execute()) {
     echo json_encode(['success' => true, 'message' => 'Reservation updated successfully']);
 } else {
@@ -84,4 +74,5 @@ if ($stmt->execute()) {
 
 $stmt->close();
 $conn->close();
+
 ?>
