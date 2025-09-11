@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 
 function Reservation() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+
   const [reservation, setReservation] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -16,7 +19,7 @@ function Reservation() {
     setIsLoading(true);
     setError("");
     try {
-      const res = await axios.get(`${API_BASE}/reservation.php?id=${id}`);
+      const res = await axios.get(`${API_BASE}/reservation.php?id=${id}`, { withCredentials: true });
       if (res.data.status === "success" && res.data.data) {
         setReservation(res.data.data);
       } else {
@@ -37,7 +40,7 @@ function Reservation() {
       await axios.post(`${API_BASE}/update-status.php`, {
         id: reservation.id,
         status: newStatus,
-      });
+      }, { withCredentials: true });
       await fetchReservation(); // обновляем после изменения
     } catch (err) {
       console.error("Error updating status:", err.response?.data || err.message);
@@ -63,7 +66,7 @@ function Reservation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  if (isLoading) return <div>Loading...</div>;
+  if (loading || isLoading) return <div>Loading...</div>;
   if (error) return <div className="alert alert-danger">{error}</div>;
 
   return (
@@ -101,7 +104,8 @@ function Reservation() {
       )}
 
       <div className="d-flex justify-content-center gap-3 my-3">
-        {reservation.status !== "confirmed" && (
+        {/* Только админ может подтверждать или отменять */}
+        {user?.role?.toLowerCase() === "admin" && reservation.status !== "confirmed" && (
           <button
             className="btn btn-success"
             onClick={() => updateStatus("confirmed")}
@@ -110,7 +114,7 @@ function Reservation() {
             {statusUpdating ? "Updating..." : "Confirm"}
           </button>
         )}
-        {reservation.status !== "cancelled" && (
+        {user?.role?.toLowerCase() === "admin" && reservation.status !== "cancelled" && (
           <button
             className="btn btn-danger"
             onClick={() => updateStatus("cancelled")}
@@ -119,7 +123,8 @@ function Reservation() {
             {statusUpdating ? "Updating..." : "Cancel"}
           </button>
         )}
-        {/* Новая кнопка для редактирования */}
+
+        {/* Кнопка редактирования видна всем пользователям */}
         <button
           className="btn btn-warning"
           onClick={() => navigate(`/edit-reservation/${reservation.id}`)}

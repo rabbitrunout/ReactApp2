@@ -18,7 +18,7 @@ function ReservationsList() {
   const [updateSuccess, setUpdateSuccess] = useState("");
 
   const reservationsPerPage = 6;
-  const { user, loading } = useAuth(); // получаем пользователя и статус загрузки
+  const { user, loading } = useAuth();
   const API_BASE = process.env.REACT_APP_API_BASE_URL;
 
   useEffect(() => {
@@ -137,12 +137,7 @@ function ReservationsList() {
     }
   };
 
-  if (loading) {
-    return <p>Loading user info...</p>;
-  }
-
-  // Для отладки: показываем роль пользователя
-  console.log("Current user:", user);
+  if (loading) return <p>Loading user info...</p>;
 
   return (
     <div className="container mt-4">
@@ -180,13 +175,7 @@ function ReservationsList() {
                   <b>Resource:</b>{" "}
                   {resources.find(res => res.id === r.resource_id)?.name || "Unknown"}<br />
                   <b>Status:</b>{" "}
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "0.3rem",
-                    }}
-                  >
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
                     <span
                       style={{
                         width: "12px",
@@ -200,24 +189,25 @@ function ReservationsList() {
                 </p>
 
                 <div className="d-flex gap-2 mt-auto">
+                  {/* Все пользователи видят View */}
                   <Link to={`/reservation/${r.id}`} className="btn btn-primary flex-grow-1">
                     View
                   </Link>
 
-                  {/* Кнопки редактирования и удаления только для админа */}
+                  {/* Только admin видит Delete и Edit */}
                   {user?.role?.toLowerCase() === "admin" && (
                     <>
-                      <button
-                        className="btn btn-warning flex-grow-1"
-                        onClick={() => handleEditClick(r)}
-                      >
-                        Edit
-                      </button>
                       <button
                         className="btn btn-danger flex-grow-1"
                         onClick={() => handleDelete(r.id)}
                       >
                         Delete
+                      </button>
+                      <button
+                        className="btn btn-warning flex-grow-1"
+                        onClick={() => handleEditClick(r)}
+                      >
+                        Edit
                       </button>
                     </>
                   )}
@@ -246,7 +236,6 @@ function ReservationsList() {
         </nav>
       )}
 
-      {/* Модальное окно редактирования */}
       {editingReservation && user?.role?.toLowerCase() === "admin" && (
         <div className="modal show d-block" tabIndex="-1" role="dialog" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
           <div className="modal-dialog">
