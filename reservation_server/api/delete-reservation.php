@@ -1,74 +1,72 @@
 <?php
-// ----------------- Ошибки для отладки -----------------
 ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// ----------------- CORS -----------------
-$allowedOrigins = ['http://localhost:3000'];
-$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
-}
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Access-Control-Allow-Credentials: true");
+session_start();
 
+// ----------------- CORS -----------------
+header("Access-Control-Allow-Origin: http://localhost:3000"); 
+header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Content-Type: application/json");
+
+// Preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
-// ----------------- Сессия и проверка авторизации -----------------
-session_start();
+require_once('../config/config.php');
+require_once('../config/database.php');
 
-if (!isset($_SESSION['user']['registrationID'])) {
+// Проверка авторизации
+if (!isset($_SESSION['user_id'])) {
     echo json_encode(["success" => false, "message" => "Not logged in"]);
     exit;
 }
 
-if (!isset($_SESSION['user']['role']) || $_SESSION['user']['role'] !== 'admin') {
+// Только для admin
+if ($_SESSION['role'] !== 'admin') {
     echo json_encode(["success" => false, "message" => "Access denied: admin only"]);
     exit;
 }
 
-// ----------------- Подключение к БД -----------------
-require_once('../config/config.php');
-require_once('../config/database.php');
+// Получаем ID бронирования
+$data = json_decode(file_get_contents('php://input'), true);
+$id = isset($data['id']) ? intval($data['id']) : 0;
 
-$conn = new mysqli($servername, $username, $password, $dbname);
-if ($conn->connect_error) {
-    die(json_encode(['success' => false, 'message' => 'Connection failed: ' . $conn->connect_error]));
+if ($id <= 0) {
+    echo json_encode(['success' => false, 'message' => 'Invalid ID']);
+    exit;
 }
 
-// ----------------- Удаление бронирования -----------------
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $data = json_decode(file_get_contents("php://input"), true);
-    $id = isset($data['id']) ? intval($data['id']) : 0;
+// ----------------- Получаем имя изображения -----------------
+$stmt = $conn->prepare("SELECT imageName FROM reservations WHERE id=?");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$stmt->bind_result($imageName);
+$stmt->fetch();
+$stmt->close();
 
-    if ($id <= 0) {
-        echo json_encode(['success' => false, 'message' => 'Invalid ID']);
-        exit;
+// ----------------- Удаляем запись -----------------
+$stmt = $conn->prepare("DELETE FROM reservations WHERE id=?");
+$stmt->bind_param("i", $id);
+
+if ($stmt->execute()) {
+    // ----------------- Удаляем файл изображения -----------------
+    if ($imageName) {
+        $filePath = __DIR__ . "/uploads/" . $imageName;
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
     }
-
-    $stmt = $conn->prepare("DELETE FROM reservations WHERE id = ?");
-    if (!$stmt) {
-        echo json_encode(['success' => false, 'message' => 'Prepare failed: ' . $conn->error]);
-        exit;
-    }
-
-    $stmt->bind_param("i", $id);
-
-    if ($stmt->execute()) {
-        echo json_encode(['success' => true, 'message' => 'Reservation deleted']);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Execute failed: ' . $stmt->error]);
-    }
-
-    $stmt->close();
+    echo json_encode(['success' => true, 'message' => 'Reservation deleted successfully']);
 } else {
-    echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Database error: ' . $stmt->error]);
 }
 
+$stmt->close();
 $conn->close();
 ?>

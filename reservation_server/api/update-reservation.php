@@ -40,14 +40,29 @@ if (!$id || !$booking_date || !$start_time || !$end_time || !$resource_id) {
     exit();
 }
 
-// Обработка изображения
+// ----------------- Обработка изображения -----------------
 $imageName = null;
+$uploadDir = __DIR__ . "/uploads/";
+
 if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
-    $uploadDir = __DIR__ . "/uploads/";
+
     if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
 
     $imageName = basename($_FILES['image']['name']);
     $targetFile = $uploadDir . $imageName;
+
+    // Удаляем старое изображение, если есть
+    $stmtOld = $conn->prepare("SELECT imageName FROM reservations WHERE id=?");
+    $stmtOld->bind_param("i", $id);
+    $stmtOld->execute();
+    $stmtOld->bind_result($oldImage);
+    $stmtOld->fetch();
+    $stmtOld->close();
+
+    if ($oldImage && file_exists($uploadDir . $oldImage)) {
+        unlink($uploadDir . $oldImage);
+    }
+
     if (!move_uploaded_file($_FILES['image']['tmp_name'], $targetFile)) {
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Failed to upload image']);
@@ -55,7 +70,7 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
     }
 }
 
-// SQL: обновляем с изображением или без
+// ----------------- SQL: обновляем с изображением или без -----------------
 if ($imageName) {
     $stmt = $conn->prepare("UPDATE reservations SET booking_date=?, start_time=?, end_time=?, resource_id=?, imageName=? WHERE id=?");
     $stmt->bind_param("sssisi", $booking_date, $start_time, $end_time, $resource_id, $imageName, $id);
@@ -74,5 +89,4 @@ if ($stmt->execute()) {
 
 $stmt->close();
 $conn->close();
-
 ?>
